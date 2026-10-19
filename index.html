@@ -300,9 +300,9 @@
         <div class="tagline">Break the gray. Bring the color back.</div>
         <p>Monochroma lost its color the day the First Ember burned through it. Four shades are all that's left. Snakes roam the gray, steered by whoever grips the wheel. But the color isn't gone — it's locked inside the gray blocks. Swallow a relic, open your jaws, spit it, break the gray — and Monochroma gets its color back, one hue at a time.</p>
         <div class="modes">
-          <button class="pcard mode" id="startButton" type="button"><canvas data-icon="head" width="9" height="9"></canvas><b>Pilgrim</b><small>Solo. One life.</small></button>
-          <button class="pcard mode" id="battleButton" type="button"><canvas data-icon="tower" width="9" height="9"></canvas><b>Keep battle</b><small>1–4 on one screen.</small></button>
-          <button class="pcard mode" id="onlineButton" type="button"><canvas data-icon="signal" width="9" height="9"></canvas><b>Online</b><small>Online rooms of 4.</small></button>
+          <button class="pcard mode" id="startButton" type="button"><canvas data-icon="head" width="9" height="9"></canvas><b>Single Play</b><small>Solo. One life.</small></button>
+          <button class="pcard mode" id="battleButton" type="button"><canvas data-icon="tower" width="9" height="9"></canvas><b>Multi Play</b><small>1–4 on one screen.</small></button>
+          <button class="pcard mode" id="onlineButton" type="button"><canvas data-icon="signal" width="9" height="9"></canvas><b>Online Play</b><small>Rooms of 4 online.</small></button>
         </div>
         <div class="pick" id="pickText">PICK A CARD!</div>
 
@@ -1539,7 +1539,7 @@
     function connectOnline(room, isHost) {
       var status = document.getElementById('onlineStatus'), name = document.getElementById('onlineName').value.trim().toUpperCase();
       if (!name) { status.textContent = 'Enter your name first.'; return; }
-      if (!window.mqtt || typeof window.mqtt.connect !== 'function') { status.textContent = 'Online service could not load. Try Keep battle instead.'; return; }
+      if (!window.mqtt || typeof window.mqtt.connect !== 'function') { status.textContent = 'Online service could not load. Try Multi Play instead.'; return; }
       leaveOnline();
       NET.room = room; NET.host = isHost; NET.id = randomId(); NET.started = false; NET.eaten = {};
       newWorld(Number(room) * 7919 + 13);
@@ -1568,7 +1568,7 @@
         else if (topic.slice(-5) === '/food') onFood(data);
         else if (topic.slice(-7) === '/events') { if (data.from !== NET.id) applyEvent(data); }
       });
-      client.on('error', function () { status.textContent = 'Broker connection failed. Try again, or play Keep battle.'; });
+      client.on('error', function () { status.textContent = 'Broker connection failed. Try again, or play Multi Play.'; });
       client.on('offline', function () { status.textContent = 'Connection lost. Reconnecting…'; });
     }
     function onState(d) {
