@@ -301,7 +301,7 @@
         <p>Monochroma lost its color the day the First Ember burned through it. Four shades are all that's left. Snakes roam the gray, steered by whoever grips the wheel. But the color isn't gone — it's locked inside the gray blocks. Swallow a relic, open your jaws, spit it, break the gray — and Monochroma gets its color back, one hue at a time.</p>
         <div class="modes">
           <button class="pcard mode" id="startButton" type="button"><canvas data-icon="head" width="9" height="9"></canvas><b>Single Play</b><small>Solo. One life.</small></button>
-          <button class="pcard mode" id="battleButton" type="button"><canvas data-icon="tower" width="9" height="9"></canvas><b>Multi Play</b><small>1–4 on one screen.</small></button>
+          <button class="pcard mode" id="battleButton" type="button"><canvas data-icon="tower" width="9" height="9"></canvas><b>Multi Play</b><small>You vs 3 AI.</small></button>
           <button class="pcard mode" id="onlineButton" type="button"><canvas data-icon="signal" width="9" height="9"></canvas><b>Online Play</b><small>Rooms of 4 online.</small></button>
         </div>
         <div class="pick" id="pickText">PICK A CARD!</div>
@@ -1439,11 +1439,11 @@
       G.mode = 'battle'; resetSession(); G.wyrms = [];
       for (var i = 0; i < 4; i++) {
         var human = i < localHumans;
-        var w = makeWyrm({ id: 'p' + i, name: human ? 'P' + (i + 1) : FERAL_NAMES[i + 2], pat: i, ai: !human, keys: human && i > 0 ? KEYSETS[i] : null });
+        var w = makeWyrm({ id: 'p' + i, name: human ? (localHumans === 1 ? 'YOU' : 'P' + (i + 1)) : FERAL_NAMES[i + 2], pat: i, ai: !human, keys: human && i > 0 ? KEYSETS[i] : null });
         placeAt(w, W.spawns[i * 2]); G.wyrms.push(w);
       }
       G.me = G.wyrms[0]; refillFood(); enterPlay();
-      var guide = ['<b>P1</b> wheel + mouth/F', '<b>P2</b> A D · S', '<b>P3</b> ← → · ↓', '<b>P4</b> J L · K'];
+      var guide = ['<b>YOU</b> wheel + mouth/F', '<b>P2</b> A D · S', '<b>P3</b> ← → · ↓', '<b>P4</b> J L · K'];
       document.getElementById('battleKeyGuide').innerHTML = guide.map(function (g, i) { return i < localHumans ? g : '<b>' + G.wyrms[i].name + '</b> AI'; }).join(' · ');
       toast('HOLD THE KEEP!');
     }
@@ -2018,7 +2018,7 @@
     function finishSetup() {
       hudRight.insertBefore(cameraCard, hudRight.firstChild);
       cameraCard.hidden = !cameraActive;
-      if (pendingMode === 'battle') initLocal($('localHumanCount').value); else initSolo();
+      if (pendingMode === 'battle') initLocal(1); else initSolo();
     }
 
     /* =====================================================================
@@ -2054,9 +2054,12 @@
       selectMode(this); ensureAudio(); $('localPanel').hidden = true; $('onlinePanel').hidden = true;
       if (!setupShown && !IS_TOUCH) { setupShown = true; showSetup('solo'); } else initSolo();
     });
-    $('battleButton').addEventListener('click', function () { selectMode(this); $('localPanel').hidden = false; $('onlinePanel').hidden = true; });
+    $('battleButton').addEventListener('click', function () {
+      selectMode(this); ensureAudio(); $('localPanel').hidden = true; $('onlinePanel').hidden = true;
+      if (!setupShown && !IS_TOUCH) { setupShown = true; showSetup('battle'); } else initLocal(1);
+    });
     $('onlineButton').addEventListener('click', function () { selectMode(this); $('localPanel').hidden = true; $('onlinePanel').hidden = false; });
-    $('startLocalButton').addEventListener('click', function () { ensureAudio(); if (!setupShown && !IS_TOUCH) { setupShown = true; showSetup('battle'); } else initLocal($('localHumanCount').value); });
+    $('startLocalButton').addEventListener('click', function () { ensureAudio(); if (!setupShown && !IS_TOUCH) { setupShown = true; showSetup('battle'); } else initLocal(1); });
     $('createRoomButton').addEventListener('click', function () { ensureAudio(); var room = String(Math.floor(10000 + Math.random() * 90000)); $('roomCodeInput').value = room; connectOnline(room, true); });
     $('joinRoomButton').addEventListener('click', function () {
       ensureAudio(); var room = $('roomCodeInput').value.replace(/\D/g, '').slice(0, 6);
