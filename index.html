@@ -196,6 +196,11 @@
       .panel { padding: 20px 16px; }
     }
     @media (hover: hover) and (pointer: fine) { .touch { display: none; } }
+    /* touch devices: camera UI hidden, bigger thumb buttons */
+    .touch-mode #topCameraButton, .touch-mode #cameraCard { display: none !important; }
+    .touch-mode .touch .pbtn { width: 76px; height: 76px; font-size: 20px; }
+    .touch-mode #spitButton { width: 96px; font-size: 10px; }
+    @media (min-width: 761px) { .touch-mode #hint { font-size: 15px; } }
   </style>
   <script type="module">
     /* MediaPipe Tasks (pose = steering wheel, face = mouth). Loaded as a module and handed to the game. */
@@ -1632,6 +1637,12 @@
     function toast(msg) { var t = $('toast'); t.textContent = msg; t.classList.remove('pop'); void t.offsetWidth; t.classList.add('pop'); clearTimeout(toast._t); toast._t = setTimeout(function () { t.textContent = ''; }, 2600); }
     function feed(msg) { var f = $('feed'), d = document.createElement('div'); d.className = 'feed'; d.textContent = msg; f.insertBefore(d, f.firstChild); while (f.children.length > 4) f.removeChild(f.lastChild); setTimeout(function () { if (d.parentNode) d.parentNode.removeChild(d); }, 4100); }
 
+    /* Phones and tablets: no camera at all — steer with the ◀ ▶ buttons and tap SPIT. */
+    var IS_TOUCH = !!(window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches);
+    if (IS_TOUCH) {
+      document.documentElement.classList.add('touch-mode');
+      $('hint').innerHTML = 'Hold <kbd>◀</kbd> <kbd>▶</kbd> to steer · tap <kbd>SPIT</kbd> to use the NEXT card';
+    }
     var hueEls = [];
     (function buildHue() {
       var box = $('huePips');
@@ -2019,11 +2030,11 @@
     function selectMode(btn) { document.querySelectorAll('.mode').forEach(function (m) { m.classList.toggle('on', m === btn); }); $('pickText').hidden = true; }
     $('startButton').addEventListener('click', function () {
       selectMode(this); ensureAudio(); $('localPanel').hidden = true; $('onlinePanel').hidden = true;
-      if (!setupShown) { setupShown = true; showSetup('solo'); } else initSolo();
+      if (!setupShown && !IS_TOUCH) { setupShown = true; showSetup('solo'); } else initSolo();
     });
     $('battleButton').addEventListener('click', function () { selectMode(this); $('localPanel').hidden = false; $('onlinePanel').hidden = true; });
     $('onlineButton').addEventListener('click', function () { selectMode(this); $('localPanel').hidden = true; $('onlinePanel').hidden = false; });
-    $('startLocalButton').addEventListener('click', function () { ensureAudio(); if (!setupShown) { setupShown = true; showSetup('battle'); } else initLocal($('localHumanCount').value); });
+    $('startLocalButton').addEventListener('click', function () { ensureAudio(); if (!setupShown && !IS_TOUCH) { setupShown = true; showSetup('battle'); } else initLocal($('localHumanCount').value); });
     $('createRoomButton').addEventListener('click', function () { ensureAudio(); var room = String(Math.floor(10000 + Math.random() * 90000)); $('roomCodeInput').value = room; connectOnline(room, true); });
     $('joinRoomButton').addEventListener('click', function () {
       ensureAudio(); var room = $('roomCodeInput').value.replace(/\D/g, '').slice(0, 6);
