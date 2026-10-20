@@ -288,7 +288,7 @@
     <div class="hud hud-bottom" id="cardDock">
       <div id="toast"></div>
       <div class="cards" id="cards"></div>
-      <div id="hint">Open mouth / <kbd>F</kbd> spit NEXT · <kbd>1</kbd>–<kbd>5</kbd> pick</div>
+      <div id="hint"><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd> steer · Open mouth / <kbd>F</kbd> spit NEXT · <kbd>1</kbd>–<kbd>5</kbd> pick</div>
     </div>
 
     <div class="touch touch-l"><button class="pbtn" id="turnLeftButton" type="button" aria-label="Turn left">◀</button><button class="pbtn" id="turnRightButton" type="button" aria-label="Turn right">▶</button></div>
@@ -382,7 +382,7 @@
         <p class="lore">Monochroma was drawn in color once. The First Ember burned it down to four shades, and the Snakes are what crawled out of the ash. They grow by eating <b>bits</b> — the crumbs of the old world — and they change by eating <b>relics</b>. The color was never destroyed: it is locked inside the gray blocks. Every block you break with a spat relic lets some out. Five steps bring it back — <b>green</b> (grass, leaves), <b>blue</b> (water, sky), <b>earth</b> (stone, wood, walls) and finally <b>life</b>, when every snake finds its color. A fallen tower counts triple. Beyond the edge is the unrendered void. Don't fall off.</p>
         <h3>Steer</h3>
         <ul>
-          <li><span class="big">1</span><span>Hold both hands up like a wheel. Lower the left hand to curve left, the right hand to curve right. No camera: <kbd>←</kbd> <kbd>→</kbd>.</span></li>
+          <li><span class="big">1</span><span>Hold both hands up like a wheel. Lower the left hand to curve left, the right hand to curve right. No camera: <kbd>←</kbd> <kbd>→</kbd> to curve, <kbd>↑</kbd> to head up the screen.</span></li>
           <li><span class="big">2</span><span><b>Open your mouth</b> to spit the NEXT relic (or press <kbd>F</kbd>). Keys <kbd>1</kbd>–<kbd>5</kbd> spit a specific card. <kbd>Space</kbd> pauses. Every spit also smashes what it hits — trees, stone, walls, even the Keep's towers (3 hits).</span></li>
           <li><span class="big">3</span><span>Hitting a head = K.O. Hitting a body <b>severs the tail</b> — and any relics growing on it fall off for anyone to grab.</span></li>
         </ul>
@@ -432,7 +432,7 @@
     var RELICS = {
       thorn: { name: 'Thorn', ch: 'T', grow: 'Spikes sprout from a body segment.', spit: 'Spit a fan of three thorns. Long range.' },
       ember: { name: 'Ember', ch: 'E', grow: 'A segment smoulders white-hot.', spit: 'Breathe a short cone of fire. Burns trees.' },
-      stone: { name: 'Stone', ch: 'S', grow: 'A segment grows armor. Each plate absorbs one crash.', spit: 'Lob a boulder. It lands as a wall — a trap.' },
+      stone: { name: 'Stone', ch: 'S', grow: 'A segment grows armor. Each plate absorbs one crash.', spit: 'Lob a stone bomb. It blows up everything around where it lands.' },
       spark: { name: 'Spark', ch: 'K', grow: 'A crystal antenna hums on your back.', spit: 'Instant beam that pierces stone. Longest reach.' }
     };
     var RELIC_KINDS = ['thorn', 'ember', 'stone', 'spark'];
@@ -499,7 +499,7 @@
     function genWorld(seed, easy) {
       var dens = easy ? 0.4 : 1;   // Easy: far fewer blocks, everything one floor
       var rand = mulberry32((seed >>> 0) * 9973 + 17);
-      var w = { seed: seed, tile: new Uint8Array(N * N), h: new Uint8Array(N * N), biome: new Uint8Array(N * N), version: 1, towers: [], towerOf: {}, spawns: [], broken: 0, hueStep: 1 };
+      var w = { seed: seed, tile: new Uint8Array(N * N), h: new Uint8Array(N * N), biome: new Uint8Array(N * N), version: 1, towers: [], towerOf: {}, spawns: [], broken: 0, hueStep: 1, easy: !!easy };
       var wet = noise2(rand, 13), rock = noise2(rand, 12), wood = noise2(rand, 11);
       var c = N / 2, x, y, i;
       for (y = 0; y < N; y++) for (x = 0; x < N; x++) {
@@ -568,7 +568,9 @@
         tw.tiles.forEach(function (k) { if (tw.hp > 0) W.h[k] = tw.hp; else { W.tile[k] = T.GROUND; W.h[k] = 0; } });
         W.version++;
         if (typeof burst === 'function') burst(tw.x, tw.y, tw.hp > 0 ? 18 : 60, 0.5, tw.hp > 0 ? 0.9 : 1.6);
-        if (tw.hp <= 0) { countBreak(3); if (typeof feed === 'function' && G.mode !== 'menu') { feed('A TOWER OF THE LAST KEEP FELL'); sfx('thud'); } }
+        if (tw.hp <= 0) { countBreak(3);
+          // Easy: toppling all four Keep towers brings every color back at once
+          if (W.easy && W.towers.every(function (o) { return o.hp <= 0; }) && W.broken < HUE_THRESH[4]) { W.broken = HUE_THRESH[4]; countBreak(0); } if (typeof feed === 'function' && G.mode !== 'menu') { feed('A TOWER OF THE LAST KEEP FELL'); sfx('thud'); } }
         return true;
       }
       if (vid) { var key2 = vid + ':' + i; if (volleyHits[key2]) return false; volleyHits[key2] = 1; }
@@ -1174,6 +1176,8 @@
       if (w.keys) return (keys[w.keys.l] ? -1 : 0) + (keys[w.keys.r] ? 1 : 0);
       if (manualSteer) return manualSteer;
       if (G.mode !== 'battle' || localHumans < 3) { var s = (keys.ArrowLeft ? -1 : 0) + (keys.ArrowRight ? 1 : 0); if (s) return s; }
+      // ↑ / W: curve toward the top of the screen (the camera looks from +x,+y, so screen-up is -x,-y)
+      if (keys.ArrowUp || keys.KeyW) { var d = -Math.PI * 0.75 - w.angle; d = Math.atan2(Math.sin(d), Math.cos(d)); return Math.abs(d) < 0.04 ? 0 : clamp(d * 2.5, -1, 1); }
       return cameraActive && wheelSeen ? cameraSteer : 0;
     }
     function bodyHit(p, w, actors) {
@@ -1200,12 +1204,19 @@
       var grace = now < w.graceUntil;
       if (nx < 4 || ny < 4 || nx > WORLD - 4 || ny > WORLD - 4) { crash(w, now, 'edge', null); return; }
       if (isSolidT(tileAt(ahead.x, ahead.y))) { if (grace) { w.angle += Math.PI * 0.5; return; } crash(w, now, 'block', null); return; }
-      if (!grace) { var other = bodyHit({ x: nx, y: ny }, w, actors); if (other) { crash(w, now, 'body', other === w ? null : other.id); return; } }
+      if (!grace && !W.easy) { var other = bodyHit({ x: nx, y: ny }, w, actors); if (other) { crash(w, now, 'body', other === w ? null : other.id); return; } }
       w.trail.unshift({ x: nx, y: ny });
       trimTrail(w.trail, w.len);
       eatFood(w, now);
     }
     function crash(w, now, why, byId) {
+      // Easy: bumping into things never kills, the snake just turns around
+      if (W.easy && G.mode === 'solo' && w === G.me) {
+        w.angle += Math.PI; w.graceUntil = now + 900; w.flash = now + 400;
+        var hb = w.trail[0]; if (hb) burst(hb.x, hb.y, 10, 0.6); sfx('clank');
+        if (!w.bonkToast || now - w.bonkToast > 4000) { toast('BONK! KEEP GOING.'); w.bonkToast = now; }
+        return;
+      }
       var si = w.mods.indexOf('stone');
       if (si >= 0) {
         w.mods.splice(si, 1); w.angle += Math.PI; w.graceUntil = now + 900; w.flash = now + 500;
@@ -1334,11 +1345,15 @@
         else if (s.k === 'stone') {
           s.t += dt;
           if (s.t >= s.dur) {
-            dead = true; burst(s.tx, s.ty, 14, 0.6); if (G.mode !== 'menu') sfx('thud');
-            actors.forEach(function (a) { if (a.id === s.owner || a.alive === false || a.remote) return; var idx = hitTest({ x: s.tx, y: s.ty }, 24, a); if (idx >= 0) applyHit(a, idx, s.owner, now); });
-            var li = tileIndex(s.tx, s.ty);
-            if (li >= 0 && isSolidT(W.tile[li])) { if (s.mine && damageTile(li, 'stone', s.vid)) netBreak([li], 'stone'); }
-            else placeBoulder(s.tx, s.ty);
+            // Stone bomb: blows up a 3x3 patch of blocks and catches any snake in the blast
+            dead = true; burst(s.tx, s.ty, 34, 0.6, 1.4); if (G.mode !== 'menu') sfx('thud');
+            actors.forEach(function (a) { if (a.id === s.owner || a.alive === false || a.remote) return; var idx = hitTest({ x: s.tx, y: s.ty }, 48, a); if (idx >= 0) applyHit(a, idx, s.owner, now); });
+            var bx = Math.floor(s.tx / TILE), by = Math.floor(s.ty / TILE), blown = [];
+            for (var oy = -1; oy <= 1; oy++) for (var ox = -1; ox <= 1; ox++) {
+              var tx2 = bx + ox, ty2 = by + oy; if (tx2 < 0 || ty2 < 0 || tx2 >= N || ty2 >= N) continue;
+              var li = ty2 * N + tx2; if (s.mine && isSolidT(W.tile[li]) && damageTile(li, 'stone', s.vid)) blown.push(li);
+            }
+            if (blown.length) netBreak(blown, 'stone');
           }
         } else {
           s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt; if (s.spin != null) s.spin += dt * 9;
@@ -2157,7 +2172,7 @@
       $('roomCodeInput').value = roomParam; selectMode($('onlineButton')); $('onlinePanel').hidden = false;
       $('onlineStatus').textContent = 'Enter your name, then join room ' + roomParam + '.';
     }
-    window.__chroma = { G: G, fire: fire, NET: NET, debug: { onPose: onPose, onFace: onFace, pauseForHands: pauseForHands, setHue: function (v) { HUE.cur = v; } }, get W() { return W; }, get R() { return R; } };   // handy for debugging in the console
+    window.__chroma = { G: G, fire: fire, NET: NET, debug: { onPose: onPose, onFace: onFace, pauseForHands: pauseForHands, setHue: function (v) { HUE.cur = v; }, damage: function (i) { return damageTile(i, 'thorn'); } }, get W() { return W; }, get R() { return R; } };   // handy for debugging in the console
     requestAnimationFrame(loop);
   }());
   </script>
