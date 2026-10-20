@@ -152,6 +152,8 @@
     .mode.on small { color: var(--light); }
     .pick { font-family: var(--px); font-size: 12px; color: #555; margin: 14px 0 0; }
     .sub { margin-top: 14px; text-align: left; }
+    .diffs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .diffs .mode { padding: 12px 8px 11px; gap: 6px; }
     .fields { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; }
     .fields label { display: grid; gap: 5px; }
     select, input[type=text] { width: 100%; min-width: 0; font: inherit; font-size: 20px; padding: 6px 8px; color: var(--ink); background: var(--paper); border: 3px solid var(--ink); border-radius: 0; }
@@ -305,6 +307,13 @@
           <button class="pcard mode" id="onlineButton" type="button"><canvas data-icon="signal" width="9" height="9"></canvas><b>Online Play</b><small>Rooms of 4 online.</small></button>
         </div>
         <div class="pick" id="pickText">PICK A CARD!</div>
+
+        <div class="sub" id="soloPanel" hidden>
+          <div class="diffs">
+            <button class="pcard mode diff" id="easyButton" type="button"><b>EASY</b><small>Low blocks, open map.</small></button>
+            <button class="pcard mode diff" id="hardButton" type="button"><b>HARD</b><small>Tall towers, tight paths.</small></button>
+          </div>
+        </div>
 
         <div class="sub" id="localPanel" hidden>
           <div class="fields">
@@ -487,7 +496,8 @@
     }
     function noise2(rand, cell) { var a = makeNoise(rand, cell), b = makeNoise(rand, cell / 2.3); return function (x, y) { return a(x, y) * 0.7 + b(x, y) * 0.3; }; }
 
-    function genWorld(seed) {
+    function genWorld(seed, easy) {
+      var dens = easy ? 0.4 : 1;   // Easy: far fewer blocks, everything one floor
       var rand = mulberry32((seed >>> 0) * 9973 + 17);
       var w = { seed: seed, tile: new Uint8Array(N * N), h: new Uint8Array(N * N), biome: new Uint8Array(N * N), version: 1, towers: [], towerOf: {}, spawns: [], broken: 0, hueStep: 1 };
       var wet = noise2(rand, 13), rock = noise2(rand, 12), wood = noise2(rand, 11);
@@ -501,9 +511,9 @@
         else biome = top === plain ? B.BLANK : top === m ? B.MIRE : top === r ? B.PIT : B.THORN;
         w.biome[i] = biome;
         if (biome === B.MIRE && m - Math.max(r, o, plain) > 0.045) w.tile[i] = T.WATER;
-        else if (biome === B.PIT && rand() < 0.06) { w.tile[i] = T.STONE; w.h[i] = rand() < 0.4 ? 2 : 1; }
-        else if (biome === B.THORN && rand() < 0.045) { w.tile[i] = T.TREE; w.h[i] = 2; }
-        else if (biome === B.BLANK && rand() < 0.003) { w.tile[i] = T.STONE; w.h[i] = 1; }
+        else if (biome === B.PIT && rand() < 0.06 * dens) { w.tile[i] = T.STONE; w.h[i] = !easy && rand() < 0.4 ? 2 : 1; }
+        else if (biome === B.THORN && rand() < 0.045 * dens) { w.tile[i] = T.TREE; w.h[i] = 2; }
+        else if (biome === B.BLANK && rand() < 0.003 * dens) { w.tile[i] = T.STONE; w.h[i] = 1; }
       }
       // The Last Keep: ring wall with four gates, four towers, cobbled floor
       for (y = 0; y < N; y++) for (x = 0; x < N; x++) {
@@ -512,13 +522,13 @@
         if (dd < 10.5) { w.tile[i] = T.GROUND; w.h[i] = 0; }
         if (dd > 9 && dd < 10) {
           var along = Math.abs(Math.abs(dx) > Math.abs(dy) ? dy : dx);
-          if (along > 3.6 && rand() > 0.55) { w.tile[i] = T.WALL; w.h[i] = rand() < 0.35 ? 2 : 1; }
+          if (along > 3.6 && rand() > (easy ? 0.8 : 0.55)) { w.tile[i] = T.WALL; w.h[i] = !easy && rand() < 0.35 ? 2 : 1; }
         }
       }
       [[-7, -7], [5, -7], [-7, 5], [5, 5]].forEach(function (p) {
         var tx = c + p[0], ty = c + p[1];
-        var tower = { x: (tx + 1) * TILE, y: (ty + 1) * TILE, hp: 3, tiles: [] };
-        for (var yy = 0; yy < 2; yy++) for (var xx = 0; xx < 2; xx++) { var k = (ty + yy) * N + tx + xx; w.tile[k] = T.TOWER; w.h[k] = 3; tower.tiles.push(k); w.towerOf[k] = w.towers.length; }
+        var thp = easy ? 1 : 3, tower = { x: (tx + 1) * TILE, y: (ty + 1) * TILE, hp: thp, tiles: [] };
+        for (var yy = 0; yy < 2; yy++) for (var xx = 0; xx < 2; xx++) { var k = (ty + yy) * N + tx + xx; w.tile[k] = T.TOWER; w.h[k] = thp; tower.tiles.push(k); w.towerOf[k] = w.towers.length; }
         w.towers.push(tower);
       });
       // Eight spawn rings around the Keep, heading clockwise so the trail lies behind them
@@ -1401,8 +1411,8 @@
     }
 
     /* ---------- modes ---------- */
-    function newWorld(seed) {
-      W = genWorld(seed); HUE.cur = 1; HUE.applied = -1; G.food = []; G.shots = []; G.parts = []; G.remotes = {};
+    function newWorld(seed, easy) {
+      W = genWorld(seed, easy); HUE.cur = 1; HUE.applied = -1; G.food = []; G.shots = []; G.parts = []; G.remotes = {};
       if (R) R.worldVersion = -1; else drawMinimapBase();
     }
     function onHueStep(s) {
@@ -1423,9 +1433,11 @@
       refillFood();
     }
     function resetSession() { G.started = true; G.paused = false; G.over = false; G.endAt = 0; G.shots = []; G.parts = []; pausedByHands = false; }
-    function initSolo() {
+    var soloDiff = 'easy';
+    function initSolo(diff) {
+      if (diff) soloDiff = diff;
       leaveOnline();
-      newWorld(Math.floor(Math.random() * 1e9));
+      newWorld(Math.floor(Math.random() * 1e9), soloDiff === 'easy');
       G.mode = 'solo'; resetSession();
       var me = makeWyrm({ id: 'me', name: 'YOU', pat: 0 }); placeAt(me, W.spawns[0]);
       G.me = me; G.wyrms = [me]; G.feralCount = 0; G.nextFeralAt = performance.now() + 3500;
@@ -1772,7 +1784,7 @@
     function goMenu() {
       leaveOnline(); G.started = false; G.over = false; G.paused = false; pausedByHands = false;
       initMenuWorld(); setMusicPlaying(false);
-      $('localPanel').hidden = true; $('onlinePanel').hidden = true; $('pickText').hidden = false;
+      $('localPanel').hidden = true; $('onlinePanel').hidden = true; $('soloPanel').hidden = true; $('pickText').hidden = false;
       document.querySelectorAll('.mode').forEach(function (m) { m.classList.remove('on'); });
       showScreen('menu'); updateCards(); updateHud();
     }
@@ -2051,14 +2063,19 @@
 
     function selectMode(btn) { document.querySelectorAll('.mode').forEach(function (m) { m.classList.toggle('on', m === btn); }); $('pickText').hidden = true; }
     $('startButton').addEventListener('click', function () {
-      selectMode(this); ensureAudio(); $('localPanel').hidden = true; $('onlinePanel').hidden = true;
-      if (!setupShown && !IS_TOUCH) { setupShown = true; showSetup('solo'); } else initSolo();
+      selectMode(this); $('localPanel').hidden = true; $('onlinePanel').hidden = true; $('soloPanel').hidden = false;
     });
+    function startSoloDiff(diff) {
+      ensureAudio(); soloDiff = diff;
+      if (!setupShown && !IS_TOUCH) { setupShown = true; showSetup('solo'); } else initSolo(diff);
+    }
+    $('easyButton').addEventListener('click', function () { startSoloDiff('easy'); });
+    $('hardButton').addEventListener('click', function () { startSoloDiff('hard'); });
     $('battleButton').addEventListener('click', function () {
-      selectMode(this); ensureAudio(); $('localPanel').hidden = true; $('onlinePanel').hidden = true;
+      selectMode(this); ensureAudio(); $('localPanel').hidden = true; $('onlinePanel').hidden = true; $('soloPanel').hidden = true;
       if (!setupShown && !IS_TOUCH) { setupShown = true; showSetup('battle'); } else initLocal(1);
     });
-    $('onlineButton').addEventListener('click', function () { selectMode(this); $('localPanel').hidden = true; $('onlinePanel').hidden = false; });
+    $('onlineButton').addEventListener('click', function () { selectMode(this); $('localPanel').hidden = true; $('soloPanel').hidden = true; $('onlinePanel').hidden = false; });
     $('startLocalButton').addEventListener('click', function () { ensureAudio(); if (!setupShown && !IS_TOUCH) { setupShown = true; showSetup('battle'); } else initLocal(1); });
     $('createRoomButton').addEventListener('click', function () { ensureAudio(); var room = String(Math.floor(10000 + Math.random() * 90000)); $('roomCodeInput').value = room; connectOnline(room, true); });
     $('joinRoomButton').addEventListener('click', function () {
