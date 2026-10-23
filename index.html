@@ -118,14 +118,17 @@
     #toast.pop { animation: pop .5s steps(4) both; }
     @keyframes pop { from { transform: scale(1.5); } to { transform: none; } }
     .cards { display: flex; gap: 8px; align-items: flex-end; }
-    .rcard { width: 58px; height: 74px; display: grid; place-items: center; align-content: center; gap: 4px; padding: 0; position: relative; cursor: pointer; }
-    .rcard canvas { width: 27px; height: 27px; image-rendering: pixelated; }
-    .rcard .nm { font-family: var(--px); font-size: 6px; }
+    .rcard { width: 76px; height: 98px; display: grid; place-items: center; align-content: center; gap: 4px; padding: 0; position: relative; cursor: pointer; }
+    .rcard canvas { width: 40px; height: 40px; image-rendering: pixelated; }
+    .rcard .nm { font-family: var(--px); font-size: 8px; }
+    .rcard .fx { font-size: 17px; line-height: 1; color: var(--dim); }
+    .rcard.next { background: var(--ink); color: var(--paper); box-shadow: inset 0 0 0 3px var(--ink), inset 0 0 0 5px #777; }
+    .rcard.next .fx { color: #cfcfcf; } .rcard.next canvas { filter: invert(1); }
     .rcard.empty { opacity: .55; cursor: default; }
     .rcard.empty::after { content: ''; width: 14px; height: 14px; border: 2px dashed var(--mid); }
     .rcard.next { transform: translateY(-8px); }
-    .rcard.next::before { content: 'NEXT'; position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-family: var(--px); font-size: 6px; color: var(--ink); }
-    .rcard .k { position: absolute; top: 6px; left: 7px; font-family: var(--px); font-size: 6px; color: var(--mid); }
+    .rcard.next::before { content: 'NEXT · SPACE'; white-space: nowrap; position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-family: var(--px); font-size: 6px; color: var(--ink); }
+    .rcard .k { display: none; position: absolute; top: 6px; left: 7px; font-family: var(--px); font-size: 6px; color: var(--mid); }
     #hint { font-size: 17px; color: var(--dim); text-align: center; text-shadow: 1px 1px 0 var(--paper); }
     #hint kbd, .modal kbd, .ov kbd { font-family: var(--px); font-size: 7px; padding: 2px 4px; border: 2px solid var(--ink); background: var(--paper); color: var(--ink); }
 
@@ -193,7 +196,7 @@
       .hud-right { width: 170px; top: 52px; max-height: 34vh; }
       .huecard { width: 170px; } .hue-next { display: none; }
       .board p { display: none; } .row { font-size: 16px; }
-      .rcard { width: 46px; height: 60px; } .rcard canvas { width: 21px; height: 21px; }
+      .rcard { width: 56px; height: 74px; } .rcard canvas { width: 28px; height: 28px; } .rcard .nm { font-size: 6px; } .rcard .fx { font-size: 14px; }
       .cards { gap: 5px; }
       #toast { font-size: 10px; }
       #hint { display: none; }
@@ -228,6 +231,7 @@
     .touch-mode #topCameraButton, .touch-mode #cameraCard { display: none !important; }
     .touch-mode .touch .pbtn { width: 76px; height: 76px; font-size: 20px; }
     .touch-mode #spitButton { width: 96px; font-size: 10px; }
+    .touch-mode .rcard.next::before { content: 'NEXT'; }
     @media (min-width: 761px) { .touch-mode #hint { font-size: 15px; } }
   </style>
   <script type="module">
@@ -247,7 +251,7 @@
       <div class="pcard stats" aria-live="polite">
         <div class="stat"><span class="label">Length</span><span class="v" id="statLen">0</span></div>
         <div class="stat"><span class="label">K.O.</span><span class="v" id="statKo">0</span></div>
-        <div class="stat"><span class="label">Stage</span><span class="v" id="statStage">01</span></div>
+        <div class="stat"><span class="label" id="statStageLbl">Stage</span><span class="v" id="statStage">01</span></div>
         <div class="stat"><span class="label">Zone</span><span class="v" id="statZone">—</span></div>
       </div>
       <div class="pcard huecard" aria-live="polite">
@@ -294,7 +298,7 @@
     <div class="hud hud-bottom" id="cardDock">
       <div id="toast"></div>
       <div class="cards" id="cards"></div>
-      <div id="hint"><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd> steer · Open mouth / <kbd>F</kbd> spit NEXT · <kbd>1</kbd>–<kbd>5</kbd> pick</div>
+      <div id="hint"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> move · <kbd>SPACE</kbd> or open mouth: use NEXT card · <kbd>P</kbd> pause</div>
     </div>
 
     <div class="touch touch-l"><button class="pbtn" id="turnLeftButton" type="button" aria-label="Turn left">◀</button><button class="pbtn" id="turnRightButton" type="button" aria-label="Turn right">▶</button></div>
@@ -388,8 +392,8 @@
         <p class="lore">Monochroma was drawn in color once. The First Ember burned it down to four shades, and the Snakes are what crawled out of the ash. They grow by eating <b>bits</b> — the crumbs of the old world — and they change by eating <b>relics</b>. The color was never destroyed: it is locked inside the gray blocks. Every block you break with a spat relic lets some out. Five steps bring it back — <b>green</b> (grass, leaves), <b>blue</b> (water, sky), <b>earth</b> (stone, wood, walls) and finally <b>life</b>, when every snake finds its color. A fallen tower counts triple. Beyond the edge is the unrendered void. Don't fall off.</p>
         <h3>Steer</h3>
         <ul>
-          <li><span class="big">1</span><span>Hold both hands up like a wheel. Lower the left hand to curve left, the right hand to curve right. No camera: <kbd>←</kbd> <kbd>→</kbd> to curve, <kbd>↑</kbd> to head up the screen.</span></li>
-          <li><span class="big">2</span><span><b>Open your mouth</b> to spit the NEXT relic (or press <kbd>F</kbd>). Keys <kbd>1</kbd>–<kbd>5</kbd> spit a specific card. <kbd>Space</kbd> pauses. Every spit also smashes what it hits — trees, stone, walls, even the Keep's towers (3 hits).</span></li>
+          <li><span class="big">1</span><span>Hold both hands up like a wheel. Lower the left hand to curve left, the right hand to curve right. No camera: arrow keys or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> send the snake toward that side of the screen.</span></li>
+          <li><span class="big">2</span><span><b>Open your mouth</b> to use the NEXT card (or press <kbd>Space</kbd>). <kbd>P</kbd> pauses. Every spit also smashes what it hits — trees, stone, walls, even the Keep's towers (3 hits).</span></li>
           <li><span class="big">3</span><span>Hitting a head = K.O. Hitting a body <b>severs the tail</b> — and any relics growing on it fall off for anyone to grab.</span></li>
         </ul>
         <h3>Relics — what grows, what you spit</h3>
@@ -436,10 +440,10 @@
       { name: 'The Last Keep', short: 'KEEP', relic: null, text: 'Five towers at the center of the world, one for each color. Relics of every kind collect here — so do snakes. Three spat relics bring a tower down.' }
     ];
     var RELICS = {
-      thorn: { name: 'Thorn', ch: 'T', grow: 'Spikes sprout from a body segment.', spit: 'Spit a fan of three thorns. Long range.' },
-      ember: { name: 'Ember', ch: 'E', grow: 'A segment smoulders white-hot.', spit: 'Breathe a short cone of fire. Burns trees.' },
-      stone: { name: 'Stone', ch: 'S', grow: 'A segment grows armor. Each plate absorbs one crash.', spit: 'Lob a stone bomb. It blows up everything around where it lands.' },
-      spark: { name: 'Spark', ch: 'K', grow: 'A crystal antenna hums on your back.', spit: 'Instant beam that pierces stone. Longest reach.' }
+      thorn: { name: 'Thorn', fx: 'spikes', ch: 'T', grow: 'Spikes sprout from a body segment.', spit: 'Spit a fan of three thorns. Long range.' },
+      ember: { name: 'Ember', fx: 'fire', ch: 'E', grow: 'A segment smoulders white-hot.', spit: 'Breathe a short cone of fire. Burns trees.' },
+      stone: { name: 'Stone', fx: 'bomb', ch: 'S', grow: 'A segment grows armor. Each plate absorbs one crash.', spit: 'Lob a stone bomb. It blows up everything around where it lands.' },
+      spark: { name: 'Spark', fx: 'beam', ch: 'K', grow: 'A crystal antenna hums on your back.', spit: 'Instant beam that pierces stone. Longest reach.' }
     };
     var RELIC_KINDS = ['thorn', 'ember', 'stone', 'spark'];
     var CH2KIND = { T: 'thorn', E: 'ember', S: 'stone', K: 'spark' };
@@ -502,10 +506,13 @@
     }
     function noise2(rand, cell) { var a = makeNoise(rand, cell), b = makeNoise(rand, cell / 2.3); return function (x, y) { return a(x, y) * 0.7 + b(x, y) * 0.3; }; }
 
-    function genWorld(seed, easy) {
-      var dens = easy ? 0.4 : 1;   // Easy: far fewer blocks, everything one floor
+    function genWorld(seed, easy, level) {
+      // Easy runs as 5 stages: each stage adds blocks, then taller blocks, then tougher castles
+      var lv = easy ? Math.max(1, Math.min(5, level || 1)) : 0;
+      var dens = easy ? [0.4, 0.5, 0.62, 0.76, 0.9][lv - 1] : 1;
+      var tall = !easy || lv >= 3;
       var rand = mulberry32((seed >>> 0) * 9973 + 17);
-      var w = { seed: seed, tile: new Uint8Array(N * N), h: new Uint8Array(N * N), biome: new Uint8Array(N * N), version: 1, towers: [], towerOf: {}, spawns: [], broken: 0, hueStep: 1, easy: !!easy };
+      var w = { seed: seed, tile: new Uint8Array(N * N), h: new Uint8Array(N * N), biome: new Uint8Array(N * N), version: 1, towers: [], towerOf: {}, spawns: [], broken: 0, hueStep: 1, easy: !!easy, level: lv };
       var wet = noise2(rand, 13), rock = noise2(rand, 12), wood = noise2(rand, 11);
       var c = N / 2, x, y, i;
       for (y = 0; y < N; y++) for (x = 0; x < N; x++) {
@@ -517,7 +524,7 @@
         else biome = top === plain ? B.BLANK : top === m ? B.MIRE : top === r ? B.PIT : B.THORN;
         w.biome[i] = biome;
         if (biome === B.MIRE && m - Math.max(r, o, plain) > 0.045) w.tile[i] = T.WATER;
-        else if (biome === B.PIT && rand() < 0.06 * dens) { w.tile[i] = T.STONE; w.h[i] = !easy && rand() < 0.4 ? 2 : 1; }
+        else if (biome === B.PIT && rand() < 0.06 * dens) { w.tile[i] = T.STONE; w.h[i] = tall && rand() < 0.4 ? 2 : 1; }
         else if (biome === B.THORN && rand() < 0.045 * dens) { w.tile[i] = T.TREE; w.h[i] = 2; }
         else if (biome === B.BLANK && rand() < 0.003 * dens) { w.tile[i] = T.STONE; w.h[i] = 1; }
       }
@@ -528,13 +535,13 @@
         if (dd < 10.5) { w.tile[i] = T.GROUND; w.h[i] = 0; }
         if (dd > 9 && dd < 10) {
           var along = Math.abs(Math.abs(dx) > Math.abs(dy) ? dy : dx);
-          if (along > 3.6 && rand() > (easy ? 0.8 : 0.55)) { w.tile[i] = T.WALL; w.h[i] = !easy && rand() < 0.35 ? 2 : 1; }
+          if (along > 3.6 && rand() > (easy ? 0.8 : 0.55)) { w.tile[i] = T.WALL; w.h[i] = tall && rand() < 0.35 ? 2 : 1; }
         }
       }
       [[-7, -7], [5, -7], [-7, 5], [5, 5], [-1, -1]].forEach(function (p) {   // five towers, one per color
         var tx = c + p[0], ty = c + p[1];
-        var thp = easy ? 1 : 3, tower = { x: (tx + 1) * TILE, y: (ty + 1) * TILE, hp: thp, tiles: [] };
-        for (var yy = 0; yy < 2; yy++) for (var xx = 0; xx < 2; xx++) { var k = (ty + yy) * N + tx + xx; w.tile[k] = T.TOWER; w.h[k] = thp; tower.tiles.push(k); w.towerOf[k] = w.towers.length; }
+        var thp = easy ? [1, 1, 2, 2, 3][lv - 1] : 3, tower = { x: (tx + 1) * TILE, y: (ty + 1) * TILE, hp: thp, tiles: [] };
+        for (var yy = 0; yy < 2; yy++) for (var xx = 0; xx < 2; xx++) { var k = (ty + yy) * N + tx + xx; w.tile[k] = T.TOWER; w.h[k] = thp; tower.max = thp; tower.tiles.push(k); w.towerOf[k] = w.towers.length; }
         w.towers.push(tower);
       });
       // Eight spawn rings around the Keep, heading clockwise so the trail lies behind them
@@ -1107,7 +1114,7 @@
         R.tv.set(wx(tw.x), 40 * tw.hp + 60 + Math.sin(t / 260 + k) * 6, wz(tw.y)).project(R.camera);
         var sx = (R.tv.x + 1) / 2 * w, sy = (1 - R.tv.y) / 2 * h, m = 46;
         var on = sx > m && sx < w - m && sy > m && sy < h - m;
-        var lab = W.easy ? 'CASTLE' : 'CASTLE ' + tw.hp + '/3';
+        var lab = (tw.max || 3) === 1 ? 'CASTLE' : 'CASTLE ' + tw.hp + '/' + (tw.max || 3);
         var sp = el.lastChild; if (sp.textContent !== lab) sp.textContent = lab;
         if (on) { el.classList.remove('off'); el.firstChild.style.transform = 'rotate(180deg)'; }
         else {
@@ -1215,9 +1222,11 @@
       if (w.ai) return aiSteer(w, now);
       if (w.keys) return (keys[w.keys.l] ? -1 : 0) + (keys[w.keys.r] ? 1 : 0);
       if (manualSteer) return manualSteer;
-      if (G.mode !== 'battle' || localHumans < 3) { var s = (keys.ArrowLeft ? -1 : 0) + (keys.ArrowRight ? 1 : 0); if (s) return s; }
-      // ↑ / W: curve toward the top of the screen (the camera looks from +x,+y, so screen-up is -x,-y)
-      if (keys.ArrowUp || keys.KeyW) { var d = -Math.PI * 0.75 - w.angle; d = Math.atan2(Math.sin(d), Math.cos(d)); return Math.abs(d) < 0.04 ? 0 : clamp(d * 2.5, -1, 1); }
+      // Arrow keys / WASD point the snake at that side of the SCREEN (classic snake controls).
+      // The camera looks from +x,+y, so screen-right is world (1,-1) and screen-down is world (1,1).
+      var kx = ((keys.ArrowRight || keys.KeyD) ? 1 : 0) - ((keys.ArrowLeft || keys.KeyA) ? 1 : 0);
+      var ky = ((keys.ArrowDown || keys.KeyS) ? 1 : 0) - ((keys.ArrowUp || keys.KeyW) ? 1 : 0);
+      if (kx || ky) { var d = Math.atan2(ky - kx, kx + ky) - w.angle; d = Math.atan2(Math.sin(d), Math.cos(d)); return Math.abs(d) < 0.04 ? 0 : clamp(d * 2.5, -1, 1); }
       return cameraActive && wheelSeen ? cameraSteer : 0;
     }
     function bodyHit(p, w, actors) {
@@ -1316,7 +1325,7 @@
         if (f.k === 'b') { w.len += 10; if (w === G.me) sfx('bit'); }
         else if (w.mods.length < MAX_RELICS) {
           w.mods.push(f.k);
-          if (w === G.me) { toast(RELICS[f.k].name.toUpperCase() + ' GROWS ON YOU!'); sfx('relic'); updateCards(); }
+          if (w === G.me) { toast('GOT ' + RELICS[f.k].name.toUpperCase() + ' · ' + RELICS[f.k].fx.toUpperCase() + (IS_TOUCH ? ' · TAP SPIT' : ' · PRESS SPACE')); sfx('relic'); updateCards(); }
         } else { w.len += 40; if (w === G.me) { toast('BODY FULL — +40 LENGTH'); sfx('bit'); } }
         var st = stageFor(w.len);
         if (st > w.stage) { w.stage = st; if (w === G.me) { toast('STAGE ' + String(st).padStart(2, '0') + ' — ' + ['', '', 'HORNS', 'CROWN', 'BROW', 'HALO'][st] + '!'); sfx('stage'); } }
@@ -1466,8 +1475,8 @@
     }
 
     /* ---------- modes ---------- */
-    function newWorld(seed, easy) {
-      W = genWorld(seed, easy); HUE.cur = 1; HUE.applied = -1; G.food = []; G.shots = []; G.parts = []; G.remotes = {};
+    function newWorld(seed, easy, level) {
+      W = genWorld(seed, easy, level); HUE.cur = 1; HUE.applied = -1; G.food = []; G.shots = []; G.parts = []; G.remotes = {};
       if (R) R.worldVersion = -1; else drawMinimapBase();
     }
     function onHueStep(s) {
@@ -1477,6 +1486,9 @@
       if (s === 5 && G.mode === 'solo') setTimeout(function () {
         if (G.mode !== 'solo' || !G.started || G.over) return;
         G.paused = true; setMusicPlaying(false);
+        var resume = function () { G.paused = false; showScreen(null); setMusicPlaying(true); lastFrame = performance.now(); };
+        if (W.easy && W.level < 5) { showMsg('Stage ' + W.level + ' clear!', 'The color is back here. Stage ' + (W.level + 1) + ' has more blocks' + (W.level + 1 >= 3 ? ', taller walls' : '') + ' and tougher castles.', 'Next stage', function () { initSolo(null, W.level + 1); }, 'Keep playing', resume); return; }
+        if (W.easy) { showMsg('All 5 stages clear!', 'You brought every color back to Monochroma.', 'Play again', function () { initSolo('easy'); }, 'Menu', goMenu); return; }
         showMsg('Color is back.', 'You broke the gray open. Monochroma remembers every color it lost.', 'Keep playing',
           function () { G.paused = false; showScreen(null); setMusicPlaying(true); lastFrame = performance.now(); }, 'Menu', goMenu);
       }, 2200);
@@ -1488,16 +1500,17 @@
       refillFood();
     }
     function resetSession() { G.started = true; G.paused = false; G.over = false; G.endAt = 0; G.shots = []; G.parts = []; pausedByHands = false; }
-    var soloDiff = 'easy';
-    function initSolo(diff) {
-      if (diff) soloDiff = diff;
+    var soloDiff = 'easy', soloLevel = 1;
+    function initSolo(diff, level) {
+      if (diff) { soloDiff = diff; soloLevel = 1; }
+      if (level) soloLevel = level;
       leaveOnline();
-      newWorld(Math.floor(Math.random() * 1e9), soloDiff === 'easy');
+      newWorld(Math.floor(Math.random() * 1e9), soloDiff === 'easy', soloLevel);
       G.mode = 'solo'; resetSession();
       var me = makeWyrm({ id: 'me', name: 'YOU', pat: 0 }); placeAt(me, W.spawns[0]);
       G.me = me; G.wyrms = [me]; G.feralCount = 0; G.nextFeralAt = performance.now() + 3500;
       refillFood(); enterPlay();
-      toast('BREAK THE GRAY. BRING THE COLOR BACK.');
+      toast(W.easy ? 'STAGE ' + W.level + '/5 · BREAK THE 5 CASTLES' : 'BREAK THE GRAY. BRING THE COLOR BACK.');
     }
     function initLocal(humans) {
       leaveOnline();
@@ -1746,14 +1759,14 @@
         var cv = document.createElement('canvas'); cv.hidden = true; var nm = document.createElement('span'); nm.className = 'nm';
         b.appendChild(cv); b.appendChild(nm);
         b.addEventListener('click', function () { if (G.me && G.started) fire(G.me, i, performance.now()); });
-        box.appendChild(b); cardEls.push({ btn: b, cv: cv, nm: nm, kind: null });
+        box.appendChild(b); var fx = document.createElement('span'); fx.className = 'fx'; b.appendChild(fx); cardEls.push({ btn: b, cv: cv, nm: nm, fx: fx, kind: null });
       })(i);
     }
     function updateCards() {
       var mods = G.me && G.mode !== 'menu' ? G.me.mods : [];
       cardEls.forEach(function (c, i) {
         var k = mods[i] || null;
-        if (c.kind !== k) { c.kind = k; if (k) { drawIcon(c.cv, k); c.cv.hidden = false; c.nm.textContent = RELICS[k].name; } else { c.cv.hidden = true; c.nm.textContent = ''; } c.btn.classList.toggle('empty', !k); }
+        if (c.kind !== k) { c.kind = k; if (k) { drawIcon(c.cv, k); c.cv.hidden = false; c.nm.textContent = RELICS[k].name.toUpperCase(); c.fx.textContent = RELICS[k].fx; } else { c.cv.hidden = true; c.nm.textContent = ''; c.fx.textContent = ''; } c.btn.classList.toggle('empty', !k); }
         c.btn.classList.toggle('next', i === 0 && !!k);
       });
     }
@@ -1761,7 +1774,8 @@
       var me = G.me;
       $('statLen').textContent = me ? Math.round(me.len) : 0;
       $('statKo').textContent = me ? me.kills : 0;
-      $('statStage').textContent = String(me ? me.stage : 1).padStart(2, '0');
+      if (W && W.easy && G.mode === 'solo') { $('statStageLbl').textContent = 'Stage'; $('statStage').textContent = W.level + '/5'; }
+      else { $('statStageLbl').textContent = 'Growth'; $('statStage').textContent = String(me ? me.stage : 1).padStart(2, '0'); }
       if (W) {
         var hs = W.hueStep || 1;
         $('hueText').textContent = hs + '/5 ' + HUE_INFO[hs].name;
@@ -2104,14 +2118,16 @@
       if (isTyping(e)) return;
       var code = e.code, now = performance.now(), handled = true;
       keys[code] = true;
-      if (code === 'Space') { if (!e.repeat) togglePause(); }
-      else if (code === 'Escape') { if (!$('manualModal').hidden) $('manualModal').hidden = true; else handled = false; }
+      if (code === 'KeyP') { if (!e.repeat) togglePause(); }
+      else if (code === 'Escape') { if (!$('manualModal').hidden) $('manualModal').hidden = true; else if (!e.repeat) togglePause(); }
+      else if (code === 'Space' && !e.repeat && G.started && !G.paused) fire(G.me, 0, now);   // Space = use the NEXT card
+      else if (code === 'Space') { if (!e.repeat && G.paused) togglePause(); }
       else if (!G.started || G.paused) handled = code.indexOf('Arrow') === 0;
       else if ((code === 'KeyF' || code === 'Enter') && !e.repeat) fire(G.me, 0, now);
       else if (/^Digit[1-5]$/.test(code) && !e.repeat) fire(G.me, Number(code.slice(5)) - 1, now);
       else if (G.mode === 'battle' && !e.repeat && (code === 'KeyS' || code === 'ArrowDown' || code === 'KeyK')) {
         var who = G.wyrms.filter(function (w) { return w.keys && w.keys.f === code; })[0]; if (who) fire(who, 0, now);
-      } else handled = code.indexOf('Arrow') === 0 || ['KeyA', 'KeyD', 'KeyJ', 'KeyL'].indexOf(code) >= 0;
+      } else handled = code.indexOf('Arrow') === 0 || ['KeyA', 'KeyD', 'KeyW', 'KeyS'].indexOf(code) >= 0;
       if (handled) e.preventDefault();
     }, { passive: false });
     window.addEventListener('keyup', function (e) { keys[e.code] = false; });
